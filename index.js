@@ -47,6 +47,20 @@ async function run() {
             res.send(result);
         })
 
+        app.patch("/api/v1/user/:id", async (req, res) => {
+            const id = req.params.id;
+            const data = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const dataToUpdate = {
+                $set: {
+                    ...data
+                }
+            }
+            const result = await userCollection.updateOne(filter, dataToUpdate, options);
+            res.send(result);
+        })
+
         // food related apis
         app.get('/api/v1/all-food', async (req, res) => {
             const result = await foodCollection.find().toArray();
