@@ -31,6 +31,21 @@ async function run() {
 
         // collections
         const foodCollection = client.db("foodbuzz").collection("foodItems");
+        const userCollection = client.db("foodbuzz").collection("users");
+
+        // users related apis
+        app.get("/api/v1/user/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.post("/api/v1/user", async (req, res) => {
+            const data = req.body;
+            const result = await userCollection.insertOne(data);
+            res.send(result);
+        })
 
         // food related apis
         app.get('/api/v1/all-food', async (req, res) => {
