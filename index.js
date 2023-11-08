@@ -34,8 +34,9 @@ async function run() {
         const userCollection = client.db("foodbuzz").collection("users");
 
         // users related apis
-        app.get("/api/v1/user/:id", async (req, res) => {
-            const id = req.params.id;
+        app.get("/api/v1/user", async (req, res) => {
+            const { uId: id } = req.query;
+            console.log(req.query);
             const query = { _id: new ObjectId(id) };
             const result = await userCollection.findOne(query);
             res.send(result);
@@ -47,8 +48,8 @@ async function run() {
             res.send(result);
         })
 
-        app.patch("/api/v1/user/:id", async (req, res) => {
-            const id = req.params.id;
+        app.patch("/api/v1/user", async (req, res) => {
+            const { uId: id } = req.query;
             const data = req.body;
             const filter = { _id: new ObjectId(id) };
             const options = { upsert: true };
@@ -63,14 +64,26 @@ async function run() {
 
         // food related apis
         app.get('/api/v1/all-food', async (req, res) => {
-            const result = await foodCollection.find().toArray();
-            res.send(result);
+            const { page, limit } = req.query;
+            const dataCount = await foodCollection.estimatedDocumentCount();
+            const result = await foodCollection.find().skip(parseInt(page) * parseInt(limit)).limit(parseInt(limit)).toArray();
+            res.send({ dataCount, result });
         })
 
         app.get('/api/v1/single-food/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await foodCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.get('/api/v1/top-foods', async (req, res) => {
+            const { foodCount } = req.query;
+            const options = {
+                sort: { sell_count: -1 },
+                projection: { food_name: 1, food_img: 1, category: 1, price: 1, sell_count: 1 }
+            }
+            const result = await foodCollection.find({}, options).limit(parseInt(foodCount)).toArray();
             res.send(result);
         })
 
