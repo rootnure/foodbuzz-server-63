@@ -46,7 +46,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        client.connect();
 
         // collections
         const foodCollection = client.db("foodbuzz").collection("foodItems");
@@ -80,9 +80,11 @@ async function run() {
         // users related apis
         app.get("/api/v1/user", async (req, res) => {
             const { uId: id } = req.query;
-            console.log(req.query);
+            const options = {
+                projection: { _id: 0, displayName: 1, email: 1, photoURL: 1 }
+            }
             const query = { _id: new ObjectId(id) };
-            const result = await userCollection.findOne(query);
+            const result = await userCollection.findOne(query, options);
             res.send(result);
         })
 
@@ -107,7 +109,7 @@ async function run() {
         })
 
         // food related apis
-        app.get('/api/v1/all-food', verifyToken, async (req, res) => {
+        app.get('/api/v1/all-foods', async (req, res) => {
             const { page, limit } = req.query;
             const dataCount = await foodCollection.estimatedDocumentCount();
             const result = await foodCollection.find().skip(parseInt(page) * parseInt(limit)).limit(parseInt(limit)).toArray();
@@ -118,7 +120,7 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await foodCollection.findOne(query);
-            res.send(result);
+            res.send(result || {});
         })
 
         app.get('/api/v1/top-foods', async (req, res) => {
@@ -137,9 +139,24 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/api/v1/my-foods", verifyToken, async (req, res) => {
+            const { email } = req.query;
+            const tokenEmail = req.decoded?.email;
+            if (email !== tokenEmail) {
+                res.status(403).send({ msg: "Forbidden access" });
+            } else {
+                const options = {
+                    projection: { food_name: 1, size: 1, food_img: 1, price: 1, made_by: 1 }
+                }
+                const allFoods = await foodCollection.find({}, options).toArray();
+                const userAddedFoods = allFoods.filter(food => food.made_by.email === email);
+                res.send(userAddedFoods);
+            }
+        })
+
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
@@ -150,7 +167,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Foodbuzz is online...')
+    res.send({ msg: 'Foodbuzz is online...' })
 })
 
 app.listen(port, () => {
