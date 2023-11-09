@@ -116,6 +116,20 @@ async function run() {
             res.send({ dataCount, result });
         })
 
+        app.get("/api/v1/all-searched-foods", async (req, res) => {
+            const { page, limit, searchText } = req.query;
+            if (searchText === "") {
+                const dataCount = await foodCollection.estimatedDocumentCount();
+                const result = await foodCollection.find().skip(parseInt(page) * parseInt(limit)).limit(parseInt(limit)).toArray();
+                res.send({ dataCount, result });
+                return;
+            }
+            const allFood = await foodCollection.find().toArray();
+            const dataToSkip = parseInt(page) * parseInt(limit);
+            const result = allFood.filter(food => food.food_name.toLowerCase().includes(searchText.toLowerCase())).slice(dataToSkip, dataToSkip + parseInt(limit));
+            res.send({ dataCount: result.length, result });
+        })
+
         app.get('/api/v1/single-food/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -152,6 +166,20 @@ async function run() {
                 const userAddedFoods = allFoods.filter(food => food.made_by.email === email);
                 res.send(userAddedFoods);
             }
+        })
+
+        app.patch("/api/v1/update-food", async (req, res) => {
+            const { id } = req.query;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const data = req.body;
+            const dataToUpdate = {
+                $set: {
+                    ...data
+                },
+            };
+            const result = await foodCollection.updateOne(filter, dataToUpdate, options);
+            res.send(result);
         })
 
 
