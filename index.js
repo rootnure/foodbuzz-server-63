@@ -51,6 +51,7 @@ async function run() {
         // collections
         const foodCollection = client.db("foodbuzz").collection("foodItems");
         const userCollection = client.db("foodbuzz").collection("users");
+        const purchaseCollection = client.db("foodbuzz").collection("purchase");
 
         // jwt related api
         app.post("/api/v1/token", async (req, res) => {
@@ -75,6 +76,13 @@ async function run() {
                     maxAge: 0
                 })
                 .send({ success: true })
+        })
+
+        // purchase related api
+        app.post("/api/v1/order-history", async (req, res) => {
+            const data = req.body;
+            const result = await purchaseCollection.insertOne(data);
+            res.send(result);
         })
 
         // users related apis
