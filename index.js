@@ -79,9 +79,28 @@ async function run() {
         })
 
         // purchase related api
+        app.get("/api/v1/order-history", verifyToken, async (req, res) => {
+            const { email } = req.query;
+            const tokenEmail = req.decoded.email;
+            if (email !== tokenEmail) {
+                res.status(403).send({ msg: "Forbidden access" });
+                return;
+            }
+            const query = { customer_email: email };
+            const result = await purchaseCollection.find(query).toArray();
+            res.send(result);
+        })
+
         app.post("/api/v1/order-history", async (req, res) => {
             const data = req.body;
             const result = await purchaseCollection.insertOne(data);
+            res.send(result);
+        })
+
+        app.delete("/api/v1/delete-order", async (req, res) => {
+            const { id } = req.query;
+            const query = { _id: new ObjectId(id) };
+            const result = await purchaseCollection.deleteOne(query);
             res.send(result);
         })
 
